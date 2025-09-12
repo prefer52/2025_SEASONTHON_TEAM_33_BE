@@ -41,7 +41,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
         JwtDto jwtDto = jwtUtil.generateTokens(principal.getId(), principal.getERole());
-        authService.updateUserTokens(jwtDto.refreshToken(), principal.getId());
+        authService.createUserTokens(jwtDto.refreshToken(), principal.getId());
         CookieUtil.createCookie(response, ACCESS_TOKEN, jwtDto.accessToken(), cookieDomain, TOKEN_COOKIE_PATH, jwtDto.accessTokenExpirationTime().intValue());
         CookieUtil.createSecureCookie(response, REFRESH_TOKEN, jwtDto.refreshToken(), cookieDomain, TOKEN_COOKIE_PATH, (int) (jwtDto.refreshTokenExpirationTime() / 1000));
 

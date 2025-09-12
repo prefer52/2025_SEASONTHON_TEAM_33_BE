@@ -32,8 +32,6 @@ public class Users extends BaseEntity {
 
     private String oauthId;
 
-    private String refreshToken;
-
     private String password;
 
     private String name;

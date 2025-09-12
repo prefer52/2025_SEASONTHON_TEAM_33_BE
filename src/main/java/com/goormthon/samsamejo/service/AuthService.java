@@ -1,11 +1,13 @@
 package com.goormthon.samsamejo.service;
 
+import com.goormthon.samsamejo.domain.RefreshToken;
 import com.goormthon.samsamejo.domain.Users;
 import com.goormthon.samsamejo.domain.type.EProvider;
 import com.goormthon.samsamejo.domain.type.ERole;
 import com.goormthon.samsamejo.domain.type.Education;
 import com.goormthon.samsamejo.dto.response.security.JwtDto;
 import com.goormthon.samsamejo.exception.RestException;
+import com.goormthon.samsamejo.repository.RefreshTokenRepository;
 import com.goormthon.samsamejo.repository.UsersRepository;
 import com.goormthon.samsamejo.security.info.UserClaims;
 import com.goormthon.samsamejo.util.FileUtil;
@@ -28,6 +30,7 @@ import static com.goormthon.samsamejo.exception.ErrorCode.*;
 @Transactional(readOnly = true)
 public class AuthService {
 
+    private final RefreshTokenRepository refreshTokenRepository;
     private final UsersRepository usersRepository;
     private final JwtUtil jwtUtil;
     private final S3Util s3Util;
@@ -37,9 +40,12 @@ public class AuthService {
     @Value("${cloud.aws.s3.save-path.portfolio}")
     private String portfolioSavePath;
 
-    @Transactional
-    public void updateUserTokens(String refreshToken, Long userId) {
-        usersRepository.updateRefreshTokenByUserId(refreshToken, userId);
+    public void createUserTokens(String refreshToken, Long userId) {
+        refreshTokenRepository.save(RefreshToken.builder().userId(userId).refreshToken(refreshToken).build());
+    }
+
+    public void deleteUserTokens(Long userId) {
+        refreshTokenRepository.deleteById(userId);
     }
 
     @Transactional
@@ -52,14 +58,13 @@ public class AuthService {
         );
     }
 
-    @Transactional
     public JwtDto reissue(String refreshToken) {
         UserClaims userClaims = jwtUtil.getUserClaimsFromToken(refreshToken);
 
         Users user = usersRepository.findById(userClaims.id()).orElseThrow(() -> new RestException(TOKEN_INVALID));
         JwtDto jwtDto = jwtUtil.generateTokens(user.getId(), user.getRole());
 
-        usersRepository.updateRefreshTokenByUserId(jwtDto.refreshToken(), user.getId());
+        refreshTokenRepository.save(RefreshToken.builder().userId(user.getId()).refreshToken(jwtDto.refreshToken()).build());
         return jwtDto;
     }
 
